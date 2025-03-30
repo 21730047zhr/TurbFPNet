@@ -3,10 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import cv2
-
+from utils import load_state_dict
 
 class amp_simulator(nn.Module): 
-	def __init__(self, Dr0, img_size, thre, corr = -4, data_path = './data', device = 'cuda:0', scale = 1.0, use_temp = False):
+	def __init__(self, Dr0, img_size, thre, corr = -4, data_path = './PRT_model', device = 'cuda:0', scale = 1.0, use_temp = False):
 		super().__init__()
 
 		self.img_size = img_size
@@ -15,8 +15,8 @@ class amp_simulator(nn.Module):
 		self.device = torch.device(device)
 		self.Dr0 = torch.tensor(Dr0).to(self.device,dtype=torch.float32)
 		self.mapping = amp_P2S()
-		self.mapping.load_state_dict(torch.load('./data/P2S_amp_model.pt'))
-		self.dict_psf = np.load('./data/dictionary.npy', allow_pickle = True)
+		self.mapping = load_state_dict(self.mapping, './PRT_model/PRT_amp_model.pt')
+		self.dict_psf = np.load('./PRT_model/dictionary.npy', allow_pickle = True)
 
 		self.mu = torch.tensor(self.dict_psf.item()['mu']).reshape((1,1,33,33)).to(self.device,dtype=torch.float32)
 		self.dict_psf = torch.tensor(self.dict_psf.item()['dictionary'][:100,:]).reshape((100,1,33,33))
@@ -96,7 +96,7 @@ class amp_P2S(nn.Module):
 
 
 class phase_simulator(nn.Module): 
-	def __init__(self, Dr0, img_size, thre, corr = -4, data_path = './data', device = 'cuda:0', scale=1.0, use_temp = False):
+	def __init__(self, Dr0, img_size, thre, corr = -4, data_path = './PRT_model', device = 'cuda:0', scale = 0.01, use_temp = False):
 		super().__init__()
 
 		self.img_size = img_size
@@ -104,7 +104,7 @@ class phase_simulator(nn.Module):
 		self.device = torch.device(device)
 		self.Dr0 = torch.tensor(Dr0).to(self.device,dtype=torch.float32)
 		self.mapping = phase_P2S()
-		self.mapping.load_state_dict(torch.load('./data/P2S_phase_model.pt'))
+		self.mapping = load_state_dict(self.mapping, './PRT_model/PRT_phase_model.pt')
 
 		self.R = np.load(os.path.join(data_path,'R-corr_{}.npy'.format(corr)))
 		self.R = torch.tensor(self.R).to(self.device,dtype=torch.float32).reshape(1,1,9216,9216)
@@ -127,9 +127,7 @@ class phase_simulator(nn.Module):
 
 		zer = torch.sqrt(self.Dr0**(5/3)) * F.interpolate(self.R, size=(self.img_size,self.img_size), mode='bilinear', align_corners=False)
 
-		zer = zer * self.scale
-
-		out = img + self.mapping(zer)
+		out = img + self.mapping(zer.permute(0,2,3,1)).permute(0,3,1,2) * self.scale
 
 		pos = torch.fft.irfft2((self.S_half.permute(1, 2, 0).unsqueeze(0) * torch.randn(1, self.img_size,
 								self.img_size, 2, device=self.device)), s=(self.img_size,self.img_size), dim=(1,2)) * self.const
