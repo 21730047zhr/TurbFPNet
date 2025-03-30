@@ -13,6 +13,7 @@ Please follow this (https://github.com/XPixelGroup/BasicSR/blob/master/docs/Data
 
 **simulation for training data**
 ```python model_FP-P2S.py --ori_path {path_to_input_folder_for_simulation}```
+
 we provided default parameters in the document (model_FP-P2S.py) for image generation and other applications can further optimize performance by modifying the simulation parameters for FP-P2S relevant to the coherent imaging system.
 
 **Inference on simulated data**
