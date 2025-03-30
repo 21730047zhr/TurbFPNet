@@ -51,7 +51,7 @@ def FP_P2S(ori_path, img_name):
 	N = 3
 	padLeft = 0
 	padTop = 0
-	bitWidth = 255
+	bitWidth = 65535
 	D = 75/16/1000
 	L = 30
 	r0 = D*2
@@ -77,25 +77,28 @@ def FP_P2S(ori_path, img_name):
 	imgHR = imgHR * (imgHR>0)
 	imgHR = np.array(imgHR, dtype=float)
 	imgHR = (imgHR-np.min(imgHR)) / (np.max(imgHR)-np.min(imgHR)) * bitWidth
-	cv2.imwrite(hr_path+img_name, (imgHR).astype("uint8"))
+	cv2.imwrite(hr_path+img_name, (imgHR).astype("uint16"))
 
 	x_grid, y_grid = np.meshgrid(np.linspace(-1, 1, apDia, endpoint=True), np.linspace(-1, 1, apDia, endpoint=True))
 	pupil = np.sqrt(x_grid ** 2 + y_grid ** 2) <= 1
 
+	imgFP = cv2.resize(imgOri, dsize=(FP_size, FP_size), interpolation=cv2.INTER_LANCZOS4)
+	imgFP = imgFP * (imgFP>0)
+	imgFP = np.array(imgFP, dtype=float)
 	rr = np.random.rand(FP_size, FP_size)
 	phase = rr/ np.max(rr) * np.pi * 2
 
-	tilt_mat(FP_size, D, r0, L, thre = TH, use_temp = False, save_path = './data/')
-	corr_mat(Corr, D, r0, save_path = './data/')
+	#tilt_mat(FP_size, D, r0, L, thre = TH, use_temp = False, save_path = './PRT_model/')
+	#corr_mat(Corr, D, r0, save_path = './PRT_model/')
 
 	for group_idx in range(1, 11):
-		simulator_amp = amp_simulator(D/r0, FP_size, thre=TH, corr=Corr, use_temp=False, data_path='./data/').to(device, dtype=torch.float32)
-		x = torch.tensor((imgHR / np.max(imgHR)), device = device, dtype = torch.float32)
+		simulator_amp = amp_simulator(D/r0, FP_size, thre=TH, corr=Corr, use_temp=False, data_path='./PRT_model/').to(device, dtype=torch.float32)
+		x = torch.tensor((imgFP / np.max(imgFP)), device = device, dtype = torch.float32)
 		out = simulator_amp(x)
 		out_amp_img = out.clamp_(0, 1).detach().cpu().numpy()
 		out_amp_img = np.sqrt(out_amp_img * bitWidth)
 
-		simulator_phase = phase_simulator(D/r0, FP_size, thre=TH, corr=Corr, use_temp=False, data_path='./data/').to(device, dtype=torch.float32)
+		simulator_phase = phase_simulator(D/r0, FP_size, thre=TH, corr=Corr, use_temp=False, data_path='./PRT_model/').to(device, dtype=torch.float32)
 		x = torch.tensor(phase, device = device, dtype = torch.float32)
 		out = simulator_phase(x)
 		out_phase_img = out.clamp_(0, 2*np.pi).detach().cpu().numpy()
@@ -117,16 +120,16 @@ def FP_P2S(ori_path, img_name):
 
 				img = Uout/np.max(Uout)
 				img = random_add_gaussian_noise(img, sigma_range=(0, 10), clip=True, rounds=False, bitWidth = bitWidth)
-				Uout = random_add_poisson_noise(img, scale_range=(0, 1.0), clip=True, rounds=False, bitWidth = bitWidth)
+				Uout = random_add_poisson_noise(img, scale_range=(0, 1), clip=True, rounds=False, bitWidth = bitWidth)
 				Uout = (Uout-np.min(Uout))/(np.max(Uout)-np.min(Uout))*bitWidth
 				if i%9 == 0 and j%9 == 0:
-					cv2.imwrite(lr_path+img_name[:-4]+'-'+str(group_idx)+'-'+str(i//9*3+j//9+1)+'.png',Uout.astype("uint8"))
+					cv2.imwrite(lr_path+img_name[:-4]+'-'+str(group_idx)+'-'+str(i//9*3+j//9+1)+'.png',Uout.astype("uint16"))
 
 
 
 
 device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('CPU')
-ori_path = './set5/'
+ori_path = './simulated_data/hr/'
 images_list = listdir(ori_path)
 
 for idx in range(len(images_list)):
