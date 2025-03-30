@@ -88,8 +88,8 @@ def FP_P2S(ori_path, img_name):
 	rr = np.random.rand(FP_size, FP_size)
 	phase = rr/ np.max(rr) * np.pi * 2
 
-	#tilt_mat(FP_size, D, r0, L, thre = TH, use_temp = False, save_path = './PRT_model/')
-	#corr_mat(Corr, D, r0, save_path = './PRT_model/')
+	tilt_mat(FP_size, D, r0, L, thre = TH, use_temp = False, save_path = './PRT_model/')
+	corr_mat(Corr, D, r0, save_path = './PRT_model/')
 
 	for group_idx in range(1, 11):
 		simulator_amp = amp_simulator(D/r0, FP_size, thre=TH, corr=Corr, use_temp=False, data_path='./PRT_model/').to(device, dtype=torch.float32)
