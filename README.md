@@ -9,6 +9,10 @@ Please follow this (https://data.vision.ee.ethz.ch/cvl/DIV2K/) to download the D
 
 Please follow this (https://github.com/XPixelGroup/BasicSR/blob/master/docs/DatasetPreparation.md) to download test datasets (Set5/Set14/BSD100/Urban100).
 
+## Download Pre-trained Models
+
+Please follow this (https://pan.baidu.com/s/1eVpseBEzXx9Z9_3nj5_GAA?pwd=u5ea 提取码: u5ea) to download the pre-trained models.
+
 # Running
 
 **simulation for training data**
